@@ -1,66 +1,79 @@
 import streamlit as st
 
-st.title("📘 GPA & CGPA Calculator (with Credit Hours)")
+st.set_page_config(page_title="GPA & CGPA Calculator", layout="centered")
 
-# Function to convert marks to grade points
-def marks_to_gpa(marks):
-    if marks >= 85:
-        return 4.0
-    elif marks >= 80:
-        return 3.7
-    elif marks >= 75:
-        return 3.3
-    elif marks >= 70:
-        return 3.0
-    elif marks >= 65:
-        return 2.7
-    elif marks >= 60:
-        return 2.3
-    elif marks >= 55:
-        return 2.0
-    elif marks >= 50:
-        return 1.7
+st.title("🎓 GPA & CGPA Calculator")
+st.caption("Based on HEC Grading Criteria – COMSATS University Islamabad")
+
+# HEC Grading Criteria Mapping
+def percentage_to_gpa(percentage):
+    if percentage >= 87:
+        return 4.00
+    elif 82 <= percentage <= 86:
+        return 3.67
+    elif 77 <= percentage <= 81:
+        return 3.33
+    elif 72 <= percentage <= 76:
+        return 3.00
+    elif 68 <= percentage <= 71:
+        return 2.67
+    elif 63 <= percentage <= 67:
+        return 2.33
+    elif 58 <= percentage <= 62:
+        return 2.00
+    elif 54 <= percentage <= 57:
+        return 1.67
+    elif 50 <= percentage <= 53:
+        return 1.00
     else:
-        return 0.0
+        return 0.00
 
-# Input number of subjects
-num_subjects = st.number_input("Enter number of subjects this semester:", min_value=1, step=1)
+# GPA Calculation Section
+st.header("📘 Semester GPA Calculator")
 
-# Input marks and credit hours for each subject
-marks_list = []
-credits_list = []
+num_subjects = st.number_input("Number of subjects this semester:", min_value=1, step=1)
+
+subject_data = []
 for i in range(int(num_subjects)):
-    mark = st.number_input(f"Marks for Subject {i+1}:", min_value=0.0, max_value=100.0)
-    credit = st.number_input(f"Credit Hours for Subject {i+1}:", min_value=0.5, step=0.5)
-    marks_list.append(mark)
-    credits_list.append(credit)
+    col1, col2 = st.columns(2)
+    with col1:
+        marks = st.number_input(f"Marks for Subject {i+1} (%)", min_value=0.0, max_value=100.0, key=f"marks_{i}")
+    with col2:
+        credit = st.number_input(f"Credit Hours for Subject {i+1}", min_value=0.5, step=0.5, key=f"credit_{i}")
+    subject_data.append((marks, credit))
 
-# GPA Calculation
 if st.button("Calculate GPA"):
-    grade_points = [marks_to_gpa(m) for m in marks_list]
-    weighted_points = [gp * cr for gp, cr in zip(grade_points, credits_list)]
-    total_credits = sum(credits_list)
-    gpa = sum(weighted_points) / total_credits if total_credits > 0 else 0
-    st.success(f"Your GPA for this semester is: {gpa:.2f}")
+    total_quality_points = 0
+    total_credits = 0
+    for marks, credit in subject_data:
+        gpa = percentage_to_gpa(marks)
+        total_quality_points += gpa * credit
+        total_credits += credit
+    semester_gpa = total_quality_points / total_credits if total_credits > 0 else 0
+    st.success(f"✅ Your Semester GPA is: **{semester_gpa:.2f}**")
 
-# CGPA Calculation
-st.subheader("📚 CGPA Calculator")
-prev_semesters = st.number_input("Enter number of previous semesters:", min_value=0, step=1)
+# CGPA Calculation Section
+st.header("📚 CGPA Calculator")
 
-prev_gpas = []
-prev_credits = []
+prev_semesters = st.number_input("Number of previous semesters:", min_value=0, step=1)
+
+prev_data = []
 for i in range(int(prev_semesters)):
-    g = st.number_input(f"GPA for Semester {i+1}:", min_value=0.0, max_value=4.0)
-    c = st.number_input(f"Total Credit Hours for Semester {i+1}:", min_value=1.0, step=0.5)
-    prev_gpas.append(g)
-    prev_credits.append(c)
+    col1, col2 = st.columns(2)
+    with col1:
+        prev_gpa = st.number_input(f"GPA for Semester {i+1}", min_value=0.0, max_value=4.0, key=f"prev_gpa_{i}")
+    with col2:
+        prev_credit = st.number_input(f"Total Credit Hours for Semester {i+1}", min_value=1.0, step=0.5, key=f"prev_credit_{i}")
+    prev_data.append((prev_gpa, prev_credit))
 
 if st.button("Calculate CGPA"):
-    total_weighted_gpa = sum([g * c for g, c in zip(prev_gpas, prev_credits)])
-    total_credits_all = sum(prev_credits)
-    if 'gpa' in locals():
-        total_weighted_gpa += gpa * total_credits
-        total_credits_all += total_credits
-    cgpa = total_weighted_gpa / total_credits_all if total_credits_all > 0 else 0
-    st.success(f"Your CGPA is: {cgpa:.2f}")
+    total_weighted_gpa = sum(g * c for g, c in prev_data)
+    total_credits = sum(c for _, c in prev_data)
 
+    # Include current semester if calculated
+    if 'semester_gpa' in locals():
+        total_weighted_gpa += semester_gpa * total_credits
+        total_credits += total_credits
+
+    cgpa = total_weighted_gpa / total_credits if total_credits > 0 else 0
+    st.success(f"📊 Your CGPA is: **{cgpa:.2f}**")
